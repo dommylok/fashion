@@ -57,8 +57,8 @@ async def analyze_garment(image_bytes: bytes) -> tuple[GarmentAnalysis, float]:
         total_cost += cost
         usage = response.usage
         logger.info(
-            "Analysis done: %d suggestions, %d styling, input=%d, output=%d, cost=$%.4f",
-            len(parsed.suggestions), len(parsed.styling),
+            "Analysis done: %d items, %d styling, input=%d, output=%d, cost=$%.4f",
+            len(parsed.items), len(parsed.styling),
             usage.prompt_tokens, usage.completion_tokens, cost,
         )
         return parsed, total_cost

@@ -52,22 +52,24 @@ def type_list_kb(group: str) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def length_kb() -> InlineKeyboardMarkup:
-    """Выбор длины — опционально."""
-    from catalog import LENGTHS
+def length_kb(category: str = "upper_body") -> InlineKeyboardMarkup:
+    """Выбор длины по категории."""
+    from catalog import get_lengths_for_category
+    lengths = get_lengths_for_category(category)
     builder = InlineKeyboardBuilder()
-    for lid, l in LENGTHS.items():
+    for lid, l in lengths.items():
         builder.button(text=l["label_ru"], callback_data=f"length:{lid}")
     builder.adjust(2)
     builder.row(InlineKeyboardButton(text="⏭ По фото", callback_data="length:auto"))
     return builder.as_markup()
 
 
-def fit_kb() -> InlineKeyboardMarkup:
-    """Выбор посадки — опционально."""
-    from catalog import FITS
+def fit_kb(category: str = "upper_body") -> InlineKeyboardMarkup:
+    """Выбор посадки по категории."""
+    from catalog import get_fits_for_category
+    fits = get_fits_for_category(category)
     builder = InlineKeyboardBuilder()
-    for fid, f in FITS.items():
+    for fid, f in fits.items():
         builder.button(text=f["label_ru"], callback_data=f"fit:{fid}")
     builder.adjust(2)
     builder.row(InlineKeyboardButton(text="⏭ По фото", callback_data="fit:auto"))

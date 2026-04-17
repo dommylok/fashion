@@ -1,12 +1,21 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from catalog import GARMENT_TYPES, build_ai_name
+from catalog import GARMENT_TYPES
 
 
 class GarmentSuggestion(BaseModel):
-    """AI предлагает 1 вариант типа из каталога."""
+    """Один вариант типа для распознанной вещи."""
     type_id: str = Field(description="ID из каталога типов одежды")
-    confidence: str = Field(description="high / medium / low")
+
+
+class DetectedGarment(BaseModel):
+    """Одна распознанная вещь на фото (верх ИЛИ низ ИЛИ платье)."""
+    position: str = Field(
+        description="Где вещь на фото: 'top' (верх), 'bottom' (низ), 'dress' (платье/комбинезон), 'full' (цельный образ)"
+    )
+    suggestions: list[GarmentSuggestion] = Field(
+        description="Top 3 matching type IDs from the catalog for this garment"
+    )
 
 
 class OutfitSuggestion(BaseModel):
@@ -36,33 +45,35 @@ class OutfitSuggestion(BaseModel):
 
 
 class GarmentAnalysis(BaseModel):
-    """Анализ фото — AI предлагает 3 варианта типа из каталога + стайлинг."""
+    """Анализ фото: 1-2 вещи + стайлинг."""
 
-    suggestions: list[GarmentSuggestion] = Field(
-        description="Top 3 matching garment types from the catalog, ordered by confidence."
+    items: list[DetectedGarment] = Field(
+        description="All distinct garments visible in the photo. "
+        "A suit (jacket + pants) = 2 items (top + bottom). "
+        "A single jacket = 1 item. A dress/jumpsuit = 1 item."
     )
     styling: list[OutfitSuggestion] = Field(
-        description="Exactly 3 diverse outfit suggestions. All text in Russian."
+        description="Exactly 3 diverse outfit suggestions in Russian."
     )
 
-    def suggestions_card_text(self) -> str:
-        """Карточка с вариантами для пользователя."""
-        lines = ["<b>Что на фото?</b>"]
-        for i, s in enumerate(self.suggestions):
-            t = GARMENT_TYPES.get(s.type_id)
-            if t:
-                lines.append(f"{i + 1}. {t['name_ru']}")
-            else:
-                lines.append(f"{i + 1}. {s.type_id}")
-        return "\n".join(lines)
+    def items_summary(self) -> str:
+        """Краткая сводка распознанных вещей."""
+        if len(self.items) == 1:
+            item = self.items[0]
+            top_suggestion = item.suggestions[0].type_id if item.suggestions else "?"
+            t = GARMENT_TYPES.get(top_suggestion, {})
+            return f"Обнаружена 1 вещь: {t.get('name_ru', top_suggestion)}"
+
+        parts = [f"Обнаружено {len(self.items)} вещей:"]
+        for item in self.items:
+            top = item.suggestions[0].type_id if item.suggestions else "?"
+            t = GARMENT_TYPES.get(top, {})
+            pos_ru = {"top": "Верх", "bottom": "Низ", "dress": "Платье", "full": "Образ"}
+            parts.append(f"• {pos_ru.get(item.position, item.position)}: {t.get('name_ru', top)}")
+        return "\n".join(parts)
 
     def styling_card_text(self) -> str:
         lines = ["<b>Рекомендации AI-стилиста:</b>"]
         for i, s in enumerate(self.styling):
             lines.append(s.to_card_text(i + 1))
         return "\n\n".join(lines)
-
-    def garment_name_en(self, chosen_type_id: str | None = None) -> str:
-        """AI-friendly английское название для промта."""
-        type_id = chosen_type_id or (self.suggestions[0].type_id if self.suggestions else "jacket")
-        return build_ai_name(type_id)

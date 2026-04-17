@@ -1,17 +1,32 @@
-"""Try-on промт — рабочая формула с кавычками, без семантических якорей."""
+"""Try-on промт — короткий и чёткий (рабочий формат)."""
 from catalog import build_smart_description
 
 
+def _build_item_description(item: dict) -> tuple[str, str]:
+    return build_smart_description(
+        item["type_id"],
+        length_id=item.get("length_id"),
+        fit_id=item.get("fit_id"),
+    )
+
+
 def build_tryon_prompt(
-    type_id: str,
-    length_id: str | None = None,
-    fit_id: str | None = None,
+    items_chosen: list[dict],
     scene: str | None = None,
     outfit_style: str | None = None,
 ) -> str:
-    """Универсальный промт по рабочей формуле Grok."""
+    """Короткий рабочий промт. Всё усиление — внутри описания в кавычках."""
 
-    ru_desc, en_desc = build_smart_description(type_id, length_id, fit_id)
+    if len(items_chosen) == 1:
+        ru, en = _build_item_description(items_chosen[0])
+        desc = f"«{ru} ({en})»"
+    else:
+        parts_ru, parts_en = [], []
+        for item in items_chosen:
+            ru, en = _build_item_description(item)
+            parts_ru.append(ru)
+            parts_en.append(en)
+        desc = f"«верх + низ: {', '.join(parts_ru)} ({', '.join(parts_en)})»"
 
     style_block = ""
     if outfit_style:
@@ -19,19 +34,21 @@ def build_tryon_prompt(
 
     scene_block = ""
     if scene:
-        scene_block = (
-            f"\n\nФон: {scene}. Реальное фото на 35mm f/8, всё в фокусе, "
-            "street photography."
-        )
+        scene_block = f"\n\nФон: {scene}. Реальное фото, всё в фокусе."
 
     return (
         "Используй ТОЧНУЮ одежду с ПЕРВОЙ загруженной фотографии (reference clothing photo). "
-        f"Это «{ru_desc} ({en_desc})».\n\n"
-        "Одень эту одежду на модель со ВТОРОЙ загруженной фотографии. "
-        "Сохрани лицо, причёску, позу, тело, макияж и пропорции модели 1:1. "
-        "Одежда должна сидеть естественно поверх нижних слоёв или заменять верх, "
-        "как логично для этого типа одежды."
+        f"Это {desc}.\n\n"
+
+        "Перенеси на модель ВСЕ детали одежды 1:1: цвет, фактуру, надписи, "
+        "логотипы, пуговицы, молнии, пряжки, карманы, швы, воротник, манжеты, "
+        "пояса, вышивку, принты, фурнитуру. Pixel-perfect.\n\n"
+
+        "Убери вешалки, бирки, ценники, наклейки, упаковку. "
+        "Пришивные лейблы оставь.\n\n"
+
+        "Одень эту одежду на модель со ВТОРОЙ фотографии. "
+        "Лицо, причёска, поза, тело модели — 1:1."
         f"{style_block}{scene_block}\n\n"
-        "Фотографический реализм, высокое качество, естественное освещение, "
-        "точное соответствие референсу, полный рост 3:4."
+        "Фотореализм, полный рост, 3:4."
     )

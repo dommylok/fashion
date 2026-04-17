@@ -88,22 +88,19 @@ async def _imagine(prompt: str, image_uri: str = None,
 # All functions return (image_bytes, usage_dict)
 
 async def tryon(garment_bytes: bytes, model_bytes: bytes,
-                type_id: str,
-                length_id: str | None = None,
-                fit_id: str | None = None,
+                items_chosen: list[dict] | None = None,
                 scene: str | None = None,
                 outfit_style: str | None = None,
                 custom_prompt: str | None = None,
                 pro: bool = False) -> tuple[bytes, dict]:
     """Try-on using two separate images.
-    Если custom_prompt — используется как есть.
-    Иначе промт строится из type_id + length_id + fit_id."""
+    items_chosen: список выборов пользователя для каждой вещи."""
     garment_uri = to_data_uri(garment_bytes)
     model_uri = to_data_uri(model_bytes)
     if custom_prompt:
         prompt = custom_prompt
     else:
-        prompt = build_tryon_prompt(type_id, length_id=length_id, fit_id=fit_id,
+        prompt = build_tryon_prompt(items_chosen or [],
                                     scene=scene, outfit_style=outfit_style)
     return await _imagine(prompt, image_uris=[garment_uri, model_uri],
                           aspect="3:4", pro=pro)
