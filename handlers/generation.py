@@ -39,6 +39,11 @@ async def run_generation(message: types.Message, state: FSMContext):
     analysis_cost = data.get("analysis_cost", 0.0)
     items_chosen = data.get("items_chosen", [])
     custom_prompt = data.get("custom_prompt")
+    # Тип фото одежды (hanger / person / mannequin / flat_lay)
+    photo_type = "hanger"
+    analysis_data = data.get("analysis")
+    if analysis_data:
+        photo_type = analysis_data.get("photo_type", "hanger")
 
     # Инфо для статуса
     if custom_prompt:
@@ -69,6 +74,7 @@ async def run_generation(message: types.Message, state: FSMContext):
             items_chosen=items_chosen,
             scene=bg_scene if bg_mode == "scene" else None,
             outfit_style=outfit_style,
+            photo_type=photo_type,
             custom_prompt=custom_prompt,
         )
         gen_cost = PRICE_IMAGINE

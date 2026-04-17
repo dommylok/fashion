@@ -91,17 +91,19 @@ async def tryon(garment_bytes: bytes, model_bytes: bytes,
                 items_chosen: list[dict] | None = None,
                 scene: str | None = None,
                 outfit_style: str | None = None,
+                photo_type: str = "hanger",
                 custom_prompt: str | None = None,
                 pro: bool = False) -> tuple[bytes, dict]:
     """Try-on using two separate images.
-    items_chosen: список выборов пользователя для каждой вещи."""
+    photo_type: тип фото одежды для условной инструкции длины."""
     garment_uri = to_data_uri(garment_bytes)
     model_uri = to_data_uri(model_bytes)
     if custom_prompt:
         prompt = custom_prompt
     else:
         prompt = build_tryon_prompt(items_chosen or [],
-                                    scene=scene, outfit_style=outfit_style)
+                                    scene=scene, outfit_style=outfit_style,
+                                    photo_type=photo_type)
     return await _imagine(prompt, image_uris=[garment_uri, model_uri],
                           aspect="3:4", pro=pro)
 
